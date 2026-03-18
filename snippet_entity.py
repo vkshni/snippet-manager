@@ -21,7 +21,7 @@ class Snippet:
         self.snippet_id = snippet_id if snippet_id else generate_snippet_id()
         self.title = title
         self.content = content
-        self.tag = tag.lower()
+        self.tag = tag.lower() if tag else None
         self.created_at = (
             datetime.strptime(created_at, DATE_FORMAT) if created_at else datetime.now()
         )
