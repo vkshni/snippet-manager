@@ -37,29 +37,54 @@ class JSONFile:
             json.dump(data, f, indent=4)
 
 
-class CounterFile:
+class ConfigFile:
 
-    def __init__(self, COUNTER_FILE="counter.json"):
-        self.json_handler = JSONFile(COUNTER_FILE)
+    def __init__(self, CONFIG_FILE="config.json"):
+        self.json_handler = JSONFile(CONFIG_FILE)
+        self.initialize()
+
+    def _initial_data(self):
+        return {
+            "password_hash": None,
+            "hash_algorithm": "sha256",
+            "created_at": None,
+            "security": {
+                "max_attempts": 3,
+                "lockout_duration": 300,
+            },
+        }
+
+    def initialize(self):
+
+        try:
+            data = self.json_handler.read_all()
+            if not data:
+                self.json_handler.write_all(self._initial_data())
+        except:
+            self.json_handler.write_all(self._initial_data())
+
+
+class AttempsFile:
+
+    def __init__(self, ATTEMPTS_FILE="attempts.json"):
+        self.json_handler = JSONFile(ATTEMPTS_FILE)
         self.initialize()
 
     def initialize(self):
         try:
             data = self.json_handler.read_all()
             if not data:
-                self.json_handler.write_all(
-                    {
-                        "last_id": 0,
-                        "last_date": datetime.now().strftime(COUNTER_DATE_FORMAT),
-                    }
-                )
+                self.reset()
         except:
-            self.json_handler.write_all(
-                {
-                    "last_id": 0,
-                    "last_date": datetime.now().strftime(COUNTER_DATE_FORMAT),
-                }
-            )
+            self.reset()
+
+    def reset(self):
+        self.json_handler.write_all({"failed_attempts": 0, "locked_until": None})
+        return True
+
+    def update(self, failed_attempts=None, locked_until=None):
+
+        pass
 
 
 class SnippetDB:
@@ -85,6 +110,7 @@ class SnippetDB:
 
         snippets.append(snippet_dict)
         self.json_handler.write_all(snippets)
+        return True
 
     def update_snippet(self, snippet: Snippet):
 
@@ -94,7 +120,7 @@ class SnippetDB:
 
         for i, s in enumerate(snippets):
             if s["snippet_id"] == snippet.snippet_id:
-                s[i] = snippet.to_dict()
+                snippets[i] = snippet.to_dict()
                 updated = True
                 break
 
@@ -110,6 +136,8 @@ class SnippetDB:
         if len(snippets) == len(filtered):
             return False
 
+        self.json_handler.write_all(filtered)
+
         return True
 
 
@@ -117,4 +145,10 @@ if __name__ == "__main__":
 
     sdb = SnippetDB()
     s1 = Snippet("Code", "if <> else <>")
-    sdb.add_snippet(s1)
+    # sdb.add_snippet(s1)
+    # s1.snippet_id = "18032026_00006"
+    # s1.title = "Other title"
+    # print(s1.snippet_id)
+    # # print(sdb.delete_snippet(s1))
+    # print(sdb.update_snippet(s1))
+    # config = ConfigFile()
