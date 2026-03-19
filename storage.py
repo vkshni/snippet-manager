@@ -112,6 +112,12 @@ class SnippetDB:
         self.json_handler.write_all(snippets)
         return True
 
+    def get_all(self) -> list[Snippet]:
+
+        snippets = self.json_handler.read_all()
+        snippet_objs = [Snippet.from_dict(s) for s in snippets]
+        return snippet_objs
+
     def update_snippet(self, snippet: Snippet):
 
         snippets = self.json_handler.read_all()
