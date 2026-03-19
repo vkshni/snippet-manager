@@ -21,12 +21,14 @@ class Snippet:
         self.snippet_id = snippet_id if snippet_id else generate_snippet_id()
         self.title = title
         self.content = content
-        self.tag = tag.lower() if tag else None
+        self.tag = tag.lower() if tag else "untagged"
         self.created_at = (
             datetime.strptime(created_at, DATE_FORMAT) if created_at else datetime.now()
         )
         self.status = status
-        self.access_level = access_level
+        self.access_level = access_level.upper()
+
+        self.validate()
 
     @classmethod
     def from_dict(cls, snippet_dict) -> "Snippet":
@@ -51,3 +53,24 @@ class Snippet:
             "status": self.status,
             "access_level": self.access_level,
         }
+
+    def validate(self):
+
+        # title
+        if not self.title or not self.title.strip():
+            raise ValueError("Title cannot be empty")
+
+        if len(self.title) > 100:
+            raise ValueError("Title length exceeded")
+
+        # content
+        if not self.content or not self.content.strip():
+            raise ValueError("Content cannot be empty")
+
+        # tag
+        if self.tag:
+            self.tag = self.tag.replace(" ", "_")
+
+        # access level
+        if self.access_level not in ["PUBLIC", "LOCKED"]:
+            raise ValueError("Access level can be only PUBLIC or LOCKED")
