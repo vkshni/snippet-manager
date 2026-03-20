@@ -42,13 +42,69 @@ class SnippetManager:
         ]
 
         if not filtered:
-            raise ValueError(f"Snippet with titel '{title}' not found")
+            raise ValueError(f"Snippet with title '{title}' not found")
 
         return filtered
+
+    def get_snippet_by_id(self, snippet_id: str):
+
+        snippets = self.snippet_db.get_all()
+        if not snippets:
+            raise ValueError("No snippets found")
+
+        for s in snippets:
+            if s.snippet_id == snippet_id:
+                return s
+
+        return None
+
+    def archive_snippet(self, snippet_id: str):
+
+        snippet = self.get_snippet_by_id(snippet_id)
+
+        if not snippet:
+            raise ValueError(f"Snippet with ID '{snippet_id}' not found")
+
+        # check if already archived
+        if snippet.status == "ARCHIVED":
+            raise ValueError("Snippet with ID '{snippet_id}' already archived")
+
+        # archive if not
+        snippet.status = "ARCHIVED"
+
+        self.snippet_db.update_snippet(snippet)
+
+        return True
+
+    def unarchive_snippet(self, snippet_id: str):
+
+        snippet = self.get_snippet_by_id(snippet_id)
+
+        if not snippet:
+            raise ValueError(f"Snippet with ID '{snippet_id}' not found")
+
+        # check if already unarchived
+        if snippet.status == "ACTIVE":
+            raise ValueError("Snippet with ID '{snippet_id}' already unarchived")
+
+        # archive if not
+        snippet.status = "ACTIVE"
+
+        self.snippet_db.update_snippet(snippet)
+
+        return True
+
+    def is_archived(self, snippet: Snippet):
+        return snippet.status == "ARCHIVED"
+
+    def is_locked(self, snippet: Snippet):
+        return snippet.access_level == "LOCKED"
 
 
 if __name__ == "__main__":
     sm = SnippetManager()
     # sm.add_snippet("Python", "Coding....")
-    s = sm.get_snippet_by_title("Pythn")
-    print(s)
+    # s = sm.get_snippet_by_title("Pythn")
+    s = sm.get_snippet_by_id("19032026_00007")
+    print(s.title, s.content)
+    print(sm.archive_snippet("19032026_00007"))
