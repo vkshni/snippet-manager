@@ -152,9 +152,10 @@ if __name__ == "__main__":
     sdb = SnippetDB()
     s1 = Snippet("Code", "if <> else <>")
     # sdb.add_snippet(s1)
-    # s1.snippet_id = "18032026_00006"
-    # s1.title = "Other title"
+    s1.snippet_id = "19032026_00007"
+    s1.title = "Other title"
+    s1.status = "ARCHIVED"
     # print(s1.snippet_id)
     # # print(sdb.delete_snippet(s1))
-    # print(sdb.update_snippet(s1))
+    print(sdb.update_snippet(s1))
     # config = ConfigFile()
