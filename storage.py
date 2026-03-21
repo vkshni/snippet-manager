@@ -41,7 +41,6 @@ class ConfigFile:
 
     def __init__(self, CONFIG_FILE="config.json"):
         self.json_handler = JSONFile(CONFIG_FILE)
-        self.initialize()
 
     def _initial_data(self):
         return {
@@ -62,6 +61,20 @@ class ConfigFile:
                 self.json_handler.write_all(self._initial_data())
         except:
             self.json_handler.write_all(self._initial_data())
+
+    def is_initialized(self):
+
+        try:
+            if self.get_master_password_hash():
+                return True
+            return False
+        except:
+            return False
+
+    def get_master_password_hash(self):
+
+        master_password_hash = self.json_handler.read_all()["password_hash"]
+        return master_password_hash
 
 
 class AttempsFile:
@@ -84,7 +97,17 @@ class AttempsFile:
 
     def update(self, failed_attempts=None, locked_until=None):
 
-        pass
+        data = self.json_handler.read_all()
+        if failed_attempts is not None:
+            data["failed_attempts"] = failed_attempts
+        if locked_until is not None:
+            data["locked_until"] = locked_until
+
+        self.json_handler.write_all(data)
+
+    def get_data(self):
+        data = self.json_handler.read_all()
+        return data
 
 
 class SnippetDB:
@@ -150,12 +173,15 @@ class SnippetDB:
 if __name__ == "__main__":
 
     sdb = SnippetDB()
-    s1 = Snippet("Code", "if <> else <>")
-    # sdb.add_snippet(s1)
-    s1.snippet_id = "19032026_00007"
-    s1.title = "Other title"
-    s1.status = "ARCHIVED"
-    # print(s1.snippet_id)
-    # # print(sdb.delete_snippet(s1))
-    print(sdb.update_snippet(s1))
-    # config = ConfigFile()
+    c = ConfigFile()
+    # s1 = Snippet("Code", "if <> else <>")
+    # # sdb.add_snippet(s1)
+    # s1.snippet_id = "19032026_00007"
+    # s1.title = "Other title"
+    # s1.status = "ARCHIVED"
+    # # print(s1.snippet_id)
+    # # # print(sdb.delete_snippet(s1))
+    # print(sdb.update_snippet(s1))
+    # # config = ConfigFile()
+    print(c.get_master_password_hash())
+    print(c.is_initialized())
