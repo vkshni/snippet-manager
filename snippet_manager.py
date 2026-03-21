@@ -1,12 +1,19 @@
 # Snippet Manager
 from storage import SnippetDB
 from snippet_entity import Snippet
+from security import AuthService
 
 
 class SnippetManager:
 
-    def __init__(self, SNIPPET_FILE="snippets.json"):
+    def __init__(
+        self,
+        SNIPPET_FILE="snippets.json",
+        CONFIG_FILE="config.json",
+        ATTEMPTS_FILE="attempts.json",
+    ):
         self.snippet_db = SnippetDB(SNIPPET_FILE)
+        self.auth = AuthService(CONFIG_FILE, ATTEMPTS_FILE)
 
     def add_snippet(self, title, content, tag=None, access_level="PUBLIC"):
 
@@ -67,7 +74,7 @@ class SnippetManager:
 
         # check if already archived
         if snippet.status == "ARCHIVED":
-            raise ValueError("Snippet with ID '{snippet_id}' already archived")
+            raise ValueError(f"Snippet with ID '{snippet_id}' already archived")
 
         # archive if not
         snippet.status = "ARCHIVED"
@@ -85,7 +92,7 @@ class SnippetManager:
 
         # check if already unarchived
         if snippet.status == "ACTIVE":
-            raise ValueError("Snippet with ID '{snippet_id}' already unarchived")
+            raise ValueError(f"Snippet with ID '{snippet_id}' already unarchived")
 
         # archive if not
         snippet.status = "ACTIVE"
@@ -93,6 +100,51 @@ class SnippetManager:
         self.snippet_db.update_snippet(snippet)
 
         return True
+
+    def lock_snippet(self, snippet_id: str):
+
+        snippet = self.get_snippet_by_id(snippet_id)
+        if not snippet:
+            raise ValueError(f"Snippet with ID '{snippet_id}' not found")
+
+        # check if already locked
+        if snippet.access_level == "LOCKED":
+            raise ValueError(f"Snippet with ID '{snippet_id}' already locked")
+
+        # lock if not
+        snippet.access_level = "LOCKED"
+
+        self.snippet_db.update_snippet(snippet)
+        return True
+
+    def unlock_snippet(self, snippet_id: str):
+
+        snippet = self.get_snippet_by_id(snippet_id)
+        if not snippet:
+            raise ValueError(f"Snippet with ID '{snippet_id}' not found")
+
+        # check if already unlocked
+        if snippet.access_level == "PUBLIC":
+            raise ValueError(f"Snippet with ID '{snippet_id}' already unlocked")
+
+        # unlock if not
+        snippet.access_level = "PUBLIC"
+
+        self.snippet_db.update_snippet(snippet)
+        return True
+
+    def search_snippet(self, keyword: str, status: str = "ACTIVE"):
+
+        snippets = self.snippet_db.get_all()
+
+        filtered = list()
+        for s in snippets:
+            if s.status == "ACTIVE" and (
+                keyword.lower() in s.title.lower()
+                or (s.tag and keyword.lower() in s.tag.lower())
+            ):
+                filtered.append(s)
+        return filtered
 
     def is_archived(self, snippet: Snippet):
         return snippet.status == "ARCHIVED"
@@ -105,6 +157,11 @@ if __name__ == "__main__":
     sm = SnippetManager()
     # sm.add_snippet("Python", "Coding....")
     # s = sm.get_snippet_by_title("Pythn")
-    s = sm.get_snippet_by_id("19032026_00007")
-    print(s.title, s.content)
-    print(sm.archive_snippet("19032026_00007"))
+    # s = sm.get_snippet_by_id("19032026_00008")
+    # print(s.title, s.content)
+    # print(sm.archive_snippet("19032026_00007"))
+    # print(sm.unlock_snippet(s.snippet_id))
+
+    results = sm.search_snippet("python")
+    for s in results:
+        print(s.title, s.content)
