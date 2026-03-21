@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from storage import ConfigFile, AttempsFile
 from utils import generate_hash
 
@@ -13,9 +13,12 @@ class AuthService:
 
     def setup(self, master_password: str):
 
+        if self.config.is_initialized():
+            raise PermissionError("Already initialized")
+
+        self.config.initialize()
+
         config_data = self.config.json_handler.read_all()
-        if config_data["password_hash"]:
-            raise ValueError("Config file exists")
 
         master_password_hash = generate_hash(master_password)
 
@@ -25,31 +28,59 @@ class AuthService:
         self.config.json_handler.write_all(config_data)
         return True
 
-    def record_failed_attempts(self):
-
-        MAX_ATTEMPTS = self.config.json_handler.read_all()["max_attempts"]
-        attempts_data = self.attempts.json_handler.read_all()
-        failed_attempts = attempts_data["failed_attempts"]
-        failed_attempts += 1
-        self.attempts.json_handler.write_all(attempts_data)
-
-        if failed_attempts >= MAX_ATTEMPTS:
-            locked_until = 300
-            attempts_data["locked_until"]
-            self.attempts.json_handler.write_all(attempts_data)
-            raise ValueError("Locked out")
-
     def verify(self, user_password):
 
-        password_hash = generate_hash(user_password)
-        if password_hash == self.config.json_handler.read_all()["password_hash"]:
-            return True
+        if not self.config.is_initialized():
+            raise PermissionError("Config file not initialized")
 
-        self.record_failed_attempts()
-        raise ValueError("Incorrect Password")
+        if self.is_locked_out():
+            raise ValueError("Locked out! Try after 30 seconds")
+
+        password_hash = generate_hash(user_password)
+        if password_hash != self.config.get_master_password_hash():
+            self.record_failed_attempts()
+            return False
+
+        self.attempts.reset()
+        return True
+
+    def record_failed_attempts(self):
+
+        security = self.config.json_handler.read_all()["security"]
+
+        MAX_ATTEMPTS = security["max_attempts"]
+        LOCKOUT_DURATION = security["lockout_duration"]
+
+        attempts_data = self.attempts.get_data()
+
+        failed_attempts = attempts_data["failed_attempts"]
+        failed_attempts += 1
+        self.attempts.update(failed_attempts=failed_attempts)
+
+        if failed_attempts >= MAX_ATTEMPTS:
+            locked_until = (
+                datetime.now() + timedelta(seconds=LOCKOUT_DURATION)
+            ).strftime(DATE_FORMAT)
+            self.attempts.update(locked_until=locked_until)
+            raise ValueError("Locked out! Try after 30 seconds")
+
+    def is_locked_out(self):
+
+        locked_until = self.attempts.get_data()["locked_until"]
+
+        if not locked_until:
+            return False
+
+        expiry = datetime.strptime(locked_until, DATE_FORMAT)
+
+        if datetime.now() > expiry:
+            self.attempts.reset()
+            return False
+
+        return True
 
 
 if __name__ == "__main__":
     auth = AuthService()
     # auth.setup("vks1234")
-    print(auth.verify("vks123"))
+    print(auth.verify("vks1234"))
