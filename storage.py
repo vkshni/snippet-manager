@@ -49,7 +49,7 @@ class ConfigFile:
             "created_at": None,
             "security": {
                 "max_attempts": 3,
-                "lockout_duration": 300,
+                "lockout_duration": 30,
             },
         }
 
